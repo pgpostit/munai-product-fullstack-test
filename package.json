@@ -1,0 +1,21 @@
+{
+  "name": "chatroom",
+  "version": "1.0.0",
+  "private": true,
+  "license": "MIT",
+  "workspaces": {
+    "packages": [
+      "packages/*"
+    ]
+  },
+  "scripts": {
+    "setup": "yarn install",
+    "client": "yarn workspace @chatroom/client",
+    "server": "yarn workspace @chatroom/server",
+    "prettier": "prettier --write \"./**/*.{cjs,js,jsx,ts,tsx,json}\"",
+    "lint:fix": "eslint --fix"
+  },
+  "devDependencies": {
+    "prettier": "^3.0.3"
+  }
+}
