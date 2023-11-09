@@ -1,60 +1,87 @@
 import { useCallback, useEffect, useState } from "react";
 import { User } from "../types/user";
 import { Message } from "../types/message";
+import { Event } from "../types/events";
 
+import { io } from "socket.io-client";
 interface ChatroomPageProps {
   user: User;
 }
 
+const socket = io(`${import.meta.env.VITE_BACKEND_URL}`, {
+  transports: ["websocket", "polling"],
+  path: 'socket',
+  autoConnect: false,
+});
+
 export const ChatroomPage = ({ user }: ChatroomPageProps) => {
   const [message, setMessage] = useState("");
-  const [sending, setSending] = useState(false);
 
-  const [messages, setMessages] = useState<Array<Message>>([]);
+  type Events =
+    | Event<Message, "message">
+    | Event<User, "enter-chatroom">
+    | Event<User, "leave-chatroom">;
 
-  // Parte feita para renderizar as mensagens de tempo em tempo. Substituir a funcionalidade pelo socket
+  const [events, setEvents] = useState<Array<Events>>([]);
+
   useEffect(() => {
-    const interval = setInterval(async () => {
-      const response = await fetch(
-        `${import.meta.env.VITE_BACKEND_URL}/messages`,
-        {
-          method: "GET",
-          headers: {
-            Accept: "application/json",
-            "Content-Type": "application/json",
-          },
-        }
-      );
+    socket.connect();
+    socket.emit("enter-chatroom", { user });
 
-      const loadedMessages: Array<Message> = await response.json();
+    socket.on("enter-chatroom", ({user}) => {
+      setEvents(state => [...state, {type: "enter-chatroom", data: user}])
+    })
 
-      setMessages(loadedMessages);
-    }, 2000);
+    socket.on("leave-chatroom", ({user}) => {
+      setEvents(state => [...state, {type: "leave-chatroom", data: user}])
+    })
+
+    socket.on("message", ({message}) => {
+      setEvents(state => [...state, {type: "message", data: message}])
+    })
 
     return () => {
-      clearInterval(interval);
+      socket.emit("leave-chatroom", { user });
+      socket.disconnect();
     };
-  }, [setMessages]);
+  }, [user, setEvents]);
 
   const sendOnClick = useCallback(async () => {
-    try {
-      setSending(true);
+    socket.emit('send-message', { text: message, userId: user.id })
+    setMessage("")
+  }, [message, user, setMessage]);
 
-      await fetch(`${import.meta.env.VITE_BACKEND_URL}/message`, {
-        body: JSON.stringify({ message, user: user.id }),
-        method: "POST",
-        headers: {
-          Accept: "application/json",
-          "Content-Type": "application/json",
-        },
-      });
-    } catch (error) {
-      console.error(error);
-    } finally {
-      setMessage("");
-      setSending(false);
+  const eventsMapCallback = ({ type, data }: Events, index: number) => {
+    switch (type) {
+      case "enter-chatroom":
+        return (
+          <div key={index}>
+            Usuário <b>{data.username}</b> entrou na sala.
+          </div>
+        );
+
+      case "leave-chatroom":
+        return (
+          <div key={index}>
+            Usuário <b>{data.username}</b> saiu da sala.
+          </div>
+        );
+
+      case "message":
+        return (
+          <div key={index}>
+            <div>
+              <span>{data.author.username}:</span>
+              <span>{data.createdAt}</span>
+            </div>
+            <div>{data.text}</div>
+          </div>
+        );
+
+      default:
+        return <></>;
     }
-  }, [message, user, setMessage, setSending]);
+  };
 
   return (
     <div>
@@ -62,29 +89,18 @@ export const ChatroomPage = ({ user }: ChatroomPageProps) => {
         <h1>Broadcast</h1>
         <button>Sair</button>
       </div>
-      <div>
-        {messages.map(({ text, id, author, createdAt }) => (
-          <div key={id}>
-            <div>
-              <span>{author.username}:</span>
-              <span>{createdAt}</span>
-            </div>
-            <div>{text}</div>
-          </div>
-        ))}
-      </div>
+      <div>{events.map(eventsMapCallback)}</div>
       <div>
         <input
           type="text"
           name="username"
           id="username"
           value={message}
-          disabled={sending}
           onChange={({ target }) => {
             setMessage(target.value);
           }}
         />
-        <button onClick={sendOnClick} disabled={sending}>
+        <button onClick={sendOnClick}>
           Enviar
         </button>
       </div>

@@ -37,16 +37,5 @@ router.get("/messages", async ({ response }) => {
   response.status = 200;
 });
 
-router.post("/message", async ({ request, response }) => {
-  const { message, user } = request.body as { message: string; user: string };
-  await prisma.message.create({
-    data: {
-      text: message,
-      authorId: user,
-    },
-  });
-
-  response.status = 200;
-});
 
 export { router };
