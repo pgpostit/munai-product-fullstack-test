@@ -110,14 +110,17 @@ const ChatroomPage = ({ user }: ChatroomPageProps) => {
   };
 
   return (
-    <div>
-      <div>
-        <h1>Broadcast</h1>
-        <button onClick={quitOnClick}>Sair</button>
+    <div className="chatRoomContainer d-flex flex-column h-100 m-3 p-3">
+      <div className="d-flex justify-content-between align-items-end">
+        <div className="broadcast">Broadcast</div>
+        <button className="btn btn-primary w-25" onClick={quitOnClick}>
+          Sair
+        </button>
       </div>
-      <div>{events.map(eventsMapCallback)}</div>
-      <div>
+      <div className="flex-grow-1 overflow-auto">{events.map(eventsMapCallback)}</div>
+      <div className="d-flex justify-content-between align-items-end pb-3">
         <input
+          className="form-control"
           type="text"
           name="username"
           id="username"
@@ -126,10 +129,11 @@ const ChatroomPage = ({ user }: ChatroomPageProps) => {
             setMessage(target.value);
           }}
         />
-        <button onClick={sendOnClick}>Enviar</button>
+        <button className="btn btn-primary" onClick={sendOnClick}>
+          Enviar
+        </button>
       </div>
     </div>
   );
 };
-
 export default ChatroomPage;
