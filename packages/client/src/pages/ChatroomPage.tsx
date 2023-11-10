@@ -64,6 +64,13 @@ const ChatroomPage = ({ user }: ChatroomPageProps) => {
     setMessage("");
   }, [message, user, setMessage]);
 
+  const quitOnClick = useCallback(() => {
+    socket.emit("leave-chatroom", { userId: user.id });
+    socket.disconnect();
+    setEvents([]);
+    return window.location.reload()
+  }, [user, setEvents]);
+
   const eventsMapCallback = ({ type, data }: Events, index: number) => {
     switch (type) {
       case "entered-chatroom":
@@ -106,7 +113,7 @@ const ChatroomPage = ({ user }: ChatroomPageProps) => {
     <div>
       <div>
         <h1>Broadcast</h1>
-        <button>Sair</button>
+        <button onClick={quitOnClick}>Sair</button>
       </div>
       <div>{events.map(eventsMapCallback)}</div>
       <div>
