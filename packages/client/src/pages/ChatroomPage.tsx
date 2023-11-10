@@ -8,70 +8,89 @@ interface ChatroomPageProps {
   user: User;
 }
 
-const socket = io(`${import.meta.env.VITE_BACKEND_URL}`, {
+const socket = io(import.meta.env.VITE_SOCKET_URL, {
   transports: ["websocket", "polling"],
-  path: 'socket',
   autoConnect: false,
 });
 
-export const ChatroomPage = ({ user }: ChatroomPageProps) => {
+const ChatroomPage = ({ user }: ChatroomPageProps) => {
   const [message, setMessage] = useState("");
 
   type Events =
-    | Event<Message, "message">
-    | Event<User, "enter-chatroom">
-    | Event<User, "leave-chatroom">;
+    | Event<Message, "sended-message">
+    | Event<{ user: User; at: string }, "entered-chatroom">
+    | Event<{ user: User; at: string }, "leaved-chatroom">;
 
   const [events, setEvents] = useState<Array<Events>>([]);
 
   useEffect(() => {
     socket.connect();
-    socket.emit("enter-chatroom", { user });
+    socket.emit("enter-chatroom", { userId: user.id });
 
-    socket.on("enter-chatroom", ({user}) => {
-      setEvents(state => [...state, {type: "enter-chatroom", data: user}])
-    })
+    socket.on("entered-chatroom", ({ user, at }) => {
+      setEvents((state) => [
+        ...state,
+        { type: "entered-chatroom", data: { user, at } },
+      ]);
+    });
 
-    socket.on("leave-chatroom", ({user}) => {
-      setEvents(state => [...state, {type: "leave-chatroom", data: user}])
-    })
+    socket.on("leaved-chatroom", ({ user, at }) => {
+      setEvents((state) => [
+        ...state,
+        { type: "leaved-chatroom", data: { user, at } },
+      ]);
+    });
 
-    socket.on("message", ({message}) => {
-      setEvents(state => [...state, {type: "message", data: message}])
-    })
+    socket.on("sended-message", ({ message }) => {
+      setEvents((state) => [
+        ...state,
+        { type: "sended-message", data: message },
+      ]);
+    });
 
     return () => {
-      socket.emit("leave-chatroom", { user });
+      socket.emit("leave-chatroom", { userId: user.id });
+
+      socket.off("entered-chatroom");
+      socket.off("leaved-chatroom");
+      socket.off("sended-message");
+      
       socket.disconnect();
     };
   }, [user, setEvents]);
 
   const sendOnClick = useCallback(async () => {
-    socket.emit('send-message', { text: message, userId: user.id })
-    setMessage("")
+    socket.emit("send-message", { text: message, userId: user.id });
+    setMessage("");
   }, [message, user, setMessage]);
 
   const eventsMapCallback = ({ type, data }: Events, index: number) => {
     switch (type) {
-      case "enter-chatroom":
+      case "entered-chatroom":
         return (
           <div key={index}>
-            Usuário <b>{data.username}</b> entrou na sala.
+            <div>{data.at}</div>
+            <div>
+              Usuário <b>{data.user.username}</b> entrou na sala.
+            </div>
           </div>
         );
 
-      case "leave-chatroom":
+      case "leaved-chatroom":
         return (
           <div key={index}>
-            Usuário <b>{data.username}</b> saiu da sala.
+            <div>{data.at}</div>
+            <div>
+              Usuário <b>{data.user.username}</b> saiu da sala.
+            </div>
           </div>
         );
 
-      case "message":
+      case "sended-message":
         return (
           <div key={index}>
             <div>
-              <span>{data.author.username}:</span>
+              <b>{data.author.username}:</b>
               <span>{data.createdAt}</span>
             </div>
             <div>{data.text}</div>
@@ -100,10 +119,10 @@ export const ChatroomPage = ({ user }: ChatroomPageProps) => {
             setMessage(target.value);
           }}
         />
-        <button onClick={sendOnClick}>
-          Enviar
-        </button>
+        <button onClick={sendOnClick}>Enviar</button>
       </div>
     </div>
   );
 };
+
+export default ChatroomPage;
