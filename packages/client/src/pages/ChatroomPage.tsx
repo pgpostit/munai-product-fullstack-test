@@ -4,6 +4,7 @@ import { Message } from "../types/message";
 import { Event } from "../types/events";
 
 import { io } from "socket.io-client";
+import ScrollToBottom from "../components/ScrollToBottom";
 interface ChatroomPageProps {
   user: User;
 }
@@ -12,6 +13,13 @@ const socket = io(import.meta.env.VITE_SOCKET_URL, {
   transports: ["websocket", "polling"],
   autoConnect: false,
 });
+
+const formatDate = (dateString: string) => {
+  return new Date(dateString).toLocaleString(undefined, {
+    dateStyle: "short",
+    timeStyle: "short",
+  });
+};
 
 const ChatroomPage = ({ user }: ChatroomPageProps) => {
   const [message, setMessage] = useState("");
@@ -54,12 +62,16 @@ const ChatroomPage = ({ user }: ChatroomPageProps) => {
       socket.off("entered-chatroom");
       socket.off("leaved-chatroom");
       socket.off("sended-message");
-      
+
       socket.disconnect();
     };
   }, [user, setEvents]);
 
-  const sendOnClick = useCallback(async () => {
+  const messageOnSubmit = useCallback(async () => {
+    if (!message) {
+      return;
+    }
+
     socket.emit("send-message", { text: message, userId: user.id });
     setMessage("");
   }, [message, user, setMessage]);
@@ -68,38 +80,50 @@ const ChatroomPage = ({ user }: ChatroomPageProps) => {
     socket.emit("leave-chatroom", { userId: user.id });
     socket.disconnect();
     setEvents([]);
-    return window.location.reload()
+    return window.location.reload();
   }, [user, setEvents]);
 
   const eventsMapCallback = ({ type, data }: Events, index: number) => {
     switch (type) {
       case "entered-chatroom":
         return (
-          <div key={index}>
-            <div>{data.at}</div>
-            <div>
+          <div
+            className="alert alert-light d-flex justify-content-between"
+            key={index}
+          >
+            <small className="pe-2">
               Usuário <b>{data.user.username}</b> entrou na sala.
-            </div>
+            </small>
+            <small className="align-self-end">{formatDate(data.at)}</small>
           </div>
         );
 
       case "leaved-chatroom":
         return (
-          <div key={index}>
-            <div>{data.at}</div>
-            <div>
+          <div
+            className="alert alert-light d-flex justify-content-between"
+            key={index}
+          >
+            <small className="pe-2">
               Usuário <b>{data.user.username}</b> saiu da sala.
-            </div>
+            </small>
+            <small className="align-self-end">{formatDate(data.at)}</small>
           </div>
         );
 
       case "sended-message":
         return (
-          <div key={index}>
-            <div>
+          <div
+            className={`alert d-flex flex-column ${
+              data.authorId === user.id ? "alert-primary" : "alert-light"
+            }`}
+            key={index}
+          >
+            <div className="d-flex justify-content-between">
               <b>{data.author.username}:</b>
-              <span>{data.createdAt}</span>
+              <span>{formatDate(data.createdAt)}</span>
             </div>
+            <hr />
             <div>{data.text}</div>
           </div>
         );
@@ -110,29 +134,43 @@ const ChatroomPage = ({ user }: ChatroomPageProps) => {
   };
 
   return (
-    <div className="chatRoomContainer d-flex flex-column h-100 m-3 p-3">
-      <div className="d-flex justify-content-between align-items-end">
-        <div className="broadcast">Broadcast</div>
+    <div className="d-flex flex-column min-vh-100">
+      <div
+        className="d-flex position-sticky top-0 justify-content-between align-items-end p-4 bg-white shadow-sm"
+        style={{ zIndex: 1000 }}
+      >
+        <h1>Broadcast</h1>
         <button className="btn btn-primary w-25" onClick={quitOnClick}>
           Sair
         </button>
       </div>
-      <div className="flex-grow-1 overflow-auto">{events.map(eventsMapCallback)}</div>
-      <div className="d-flex justify-content-between align-items-end pb-3">
-        <input
-          className="form-control"
-          type="text"
-          name="username"
-          id="username"
-          value={message}
-          onChange={({ target }) => {
-            setMessage(target.value);
-          }}
-        />
-        <button className="btn btn-primary" onClick={sendOnClick}>
-          Enviar
-        </button>
+      <div className="flex-grow-1 overflow-auto justify-content-start px-4 gy-2">
+        {events.map(eventsMapCallback)}
       </div>
+      <form
+        className="d-flex justify-content-between align-items-end p-4 bg-white position-sticky bottom-0 shadow"
+        onSubmit={(e) => {
+          e.preventDefault();
+          messageOnSubmit();
+        }}
+      >
+        <div className="input-group">
+          <input
+            className="form-control"
+            type="text"
+            name="username"
+            id="username"
+            value={message}
+            onChange={({ target }) => {
+              setMessage(target.value);
+            }}
+          />
+          <button type="submit" className="btn btn-primary">
+            Enviar
+          </button>
+        </div>
+      </form>
+      <ScrollToBottom />
     </div>
   );
 };

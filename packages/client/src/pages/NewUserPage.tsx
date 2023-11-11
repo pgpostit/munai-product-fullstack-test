@@ -36,12 +36,12 @@ export const NewUserPage = ({ onCreateUser }: NewUserPageProps) => {
   }, [username, setSending, setError, onCreateUser]);
 
   return (
-    <div className="newUserContainer m-3 p-3  h-100">
+    <div className="p-4 min-vh-100 d-flex flex-column">
       <div className="mb-5">
         <h1>Cadastro</h1>
       </div>
-      <div>
-        <label className="form-label mt-0 mb-3" htmlFor="username">Nome</label>
+      <div className="flex-fill">
+        <label className="form-label mb-3" htmlFor="username">Nome</label>
         <input
           className="form-control"
           type="text"
@@ -55,8 +55,8 @@ export const NewUserPage = ({ onCreateUser }: NewUserPageProps) => {
         />
         {error && <p>Ocorreu um erro ao criar o usuário.</p>}
       </div>
-      <div className="fixed-bottom d-flex justify-content-end me-3 pe-3">
-        <button className="btn btn-primary w-25 mb-3" onClick={enterOnClick} disabled={sending}>
+      <div className="align-self-end d-flex justify-content-end">
+        <button className="btn btn-primary" onClick={enterOnClick} disabled={sending}>
           Entrar
         </button>
       </div>
