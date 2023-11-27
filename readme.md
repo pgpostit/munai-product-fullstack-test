@@ -1,3 +1,7 @@
+# Teste realizado por Paulo S. Garcia.
+
+Neste repositório contém meu teste para o desafio constado abaixo. Finalizei-o no dia 10/11/2023.
+
 # Desafio FullStack Munai
 
 Obrigado por participar de nosso processo seletivo.
